@@ -576,7 +576,7 @@
                 summaryColumns: this._getSummaryColumnConfig(),
                 enableInlineAdd: this._inlineAddIsEnabled(),
                 enableBulkEdit: true,
-                enableBulkEditMilestones: context.isFeatureEnabled('S70874_SHOW_MILESTONES_PAGE'),
+                enableBulkEditMilestones: context._isMilestoneEnabled(),
                 pagingToolbarCfg: {
                     pageSizes: this.getGridPageSizes(),
                     comboboxConfig: {

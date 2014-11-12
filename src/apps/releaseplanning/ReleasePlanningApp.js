@@ -127,7 +127,7 @@
         },
 
         _milestonesAreEnabled: function() {
-            return this.getContext().isFeatureEnabled('S70874_SHOW_MILESTONES_PAGE');
+            return this.getContext()._isMilestoneEnabled();
         }
     });
 })();

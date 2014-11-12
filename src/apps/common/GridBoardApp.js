@@ -190,7 +190,7 @@
                 columnCfgs: this.getColumnCfgs(),
                 summaryColumns: [],
                 enableBulkEdit: true,
-                enableBulkEditMilestones: context.isFeatureEnabled('S70874_SHOW_MILESTONES_PAGE'),
+                enableBulkEditMilestones: context._isMilestoneEnabled(),
                 plugins: this.getGridPlugins(),
                 stateId: context.getScopedStateId(this.getStateId() + '-grid'),
                 stateful: true,

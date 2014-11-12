@@ -5,8 +5,7 @@
         extend: 'Rally.apps.common.GridBoardApp',
         requires: [
             'Rally.ui.cardboard.plugin.CollapsibleColumns',
-            'Rally.ui.cardboard.plugin.FixedHeader',
-            'Rally.ui.combobox.PortfolioItemTypeComboBox'
+            'Rally.ui.cardboard.plugin.FixedHeader'
         ],
 
         config: {
@@ -47,7 +46,7 @@
         getFilterControlConfig: function () {
             return {
                 blackListFields: ['PortfolioItemType'],
-                whiteListFields: [this.getContext().isFeatureEnabled('S70874_SHOW_MILESTONES_PAGE') ? 'Milestones' : '']
+                whiteListFields: [this.getContext()._isMilestoneEnabled() ? 'Milestones' : '']
             };
         },
 
