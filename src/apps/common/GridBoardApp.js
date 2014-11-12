@@ -229,16 +229,22 @@
         },
 
         getFieldPickerConfig: function () {
+            var boardFieldBlackList = [
+                'AcceptedLeafStoryCount',
+                'AcceptedLeafStoryPlanEstimateTotal',
+                'DirectChildrenCount',
+                'LastUpdateDate',
+                'LeafStoryCount',
+                'LeafStoryPlanEstimateTotal',
+                'UnEstimatedLeafStoryCount'
+            ];
+
+            if(!this.getContext()._isMilestoneEnabled()) {
+                boardFieldBlackList.push('Milestones');
+            }
+
             return {
-                boardFieldBlackList: [
-                    'AcceptedLeafStoryCount',
-                    'AcceptedLeafStoryPlanEstimateTotal',
-                    'DirectChildrenCount',
-                    'LastUpdateDate',
-                    'LeafStoryCount',
-                    'LeafStoryPlanEstimateTotal',
-                    'UnEstimatedLeafStoryCount'
-                ]
+                boardFieldBlackList: boardFieldBlackList
             };
         },
 

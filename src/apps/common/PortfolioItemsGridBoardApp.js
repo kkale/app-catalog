@@ -51,9 +51,18 @@
         },
 
         getFieldPickerConfig: function () {
+            var blackListedFields = [];
+
+            if(this.getContext().isFeatureEnabled('S74502_PI_DEPENDENCIES_ON_EDP')) {
+                blackListedFields.push('PredecessorsAndSuccessors');
+            }
+            if(!this.getContext()._isMilestoneEnabled()) {
+                blackListedFields.push('Milestones');
+            }
+
             return _.merge(this.callParent(arguments), {
                 boardFieldDefaults: (this.getSetting('fields') || '').split(','),
-                gridFieldBlackList: this.getContext().isFeatureEnabled('S74502_PI_DEPENDENCIES_ON_EDP') ? [] : ['PredecessorsAndSuccessors'],
+                gridFieldBlackList: blackListedFields,
                 margin: '3 9 14 0'
             });
         },
