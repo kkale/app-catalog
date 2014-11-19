@@ -2,180 +2,52 @@
     var Ext = window.Ext4 || window.Ext;
 
     Ext.define('Rally.apps.treegrid.TreeGridApp', {
-        extend: 'Rally.app.App',
-        requires: [
-          'Rally.ui.grid.TreeGrid',
-          'Rally.ui.grid.plugin.TreeGridExpandedRowPersistence',
-          'Rally.ui.gridboard.GridBoard',
-          'Rally.ui.gridboard.plugin.GridBoardFieldPicker',
-          'Rally.ui.gridboard.plugin.GridBoardCustomFilterControl',
-          'Rally.data.PreferenceManager',
-          'Rally.data.wsapi.TreeStoreBuilder'
-        ],
+        extend: 'Rally.apps.common.GridBoardApp',
         alias: 'widget.treegridapp',
-        componentCls: 'treegrid',
-
-        statePrefix: 'custom',
-        loadGridAfterStateRestore: true,
-
-        autoScroll: false,
 
         config: {
             defaultSettings: {
-                modelNames: ['PortfolioItem/Strategy'],
+                modelNames: ['hierarchicalrequirement'],
                 columnNames: ['Name', 'Owner', 'Project', 'PercentDoneByStoryPlanEstimate', 'PercentDoneByStoryCount', 'PlannedStartDate', 'PlannedEndDate']
             }
         },
 
-        getModelNamesArray: function(modelNames) {
-            modelNames = modelNames || this.getSetting('modelNames') || this.modelNames;
-            return _.isString(modelNames) ? modelNames.split(',') : modelNames;
+        getStateId: function () {
+            return 'custom';
         },
 
-        launch: function () {
-            if(!this.rendered) {
-                this.on('afterrender', function(){
-                    this._loadApp();
-                }, this, {single: true});
-            } else {
-                this._loadApp();
-            }
+        loadModelNames: function () {
+            return Deft.Promise.when(this.getSetting('modelNames'));
         },
 
-        _loadApp: function(modelNames) {
-            var modelNamesArray = this.getModelNamesArray(modelNames);
-
-            this._getGridStore(modelNamesArray).then({
-                success: function(gridStore) {
-                    this._addGridBoard(gridStore, modelNamesArray);
-                },
-                scope: this
-            });
-        },
-
-        _addGridBoard: function(gridStore, modelNamesArray) {
-            this.gridboard = this.add(this._getGridBoardConfig(gridStore, modelNamesArray));
-        },
-
-        _getGridBoardConfig: function (gridStore, modelNamesArray) {
-            var context = this.getContext(),
-                gridStateString = this.statePrefix + '-treegrid',
-                gridStateId = context.getScopedStateId(gridStateString),
-                gridboardPlugins = this._getGridBoardPlugins(modelNamesArray);
-
-            return {
-                itemId: 'gridBoard',
-                xtype: 'rallygridboard',
-                stateId: this.statePrefix + '-gridboard',
-                context: context,
-                plugins: gridboardPlugins,
-                toggleState: 'grid',
-                modelNames: modelNamesArray,
-                cardBoardConfig: {},
-                gridConfig: this._getGridConfig(gridStore, context, gridStateId),
-                storeConfig: {},
-                height: this._getHeight()
-            };
-        },
-
-        _getGridBoardPlugins: function(modelNamesArray) {
-            var plugins = [];
-
-            if (this.filterControlConfig) {
-                plugins.push({
-                    ptype: 'rallygridboardcustomfiltercontrol',
-                    filterChildren: false,
-                    filterControlConfig: Ext.merge({
-                        context: this.getContext(),
-                        margin: '3 10',
-                        modelNames: modelNamesArray
-                    }, this.filterControlConfig)
-                });
-            }
-
-            plugins.push({
-                ptype: 'rallygridboardfieldpicker',
-                headerPosition: 'left',
-                margin: '3 9 14 0',
-                modelNames: modelNamesArray
-            });
-
-            return plugins;
-        },
-
-        _getHeight: function() {
-            return this.getHeight() || 300;
-        },
-
-        _getGridConfig: function(gridStore, context, stateId) {
-            var gridListeners = {};
-            if (this.loadGridAfterStateRestore) {
-                gridListeners = {
-                    'staterestore': {
-                        fn: this._onGridStateRestore,
-                            single: true,
-                            store: gridStore
-                    },
-                    'render': {
-                        fn: this._onGridRender,
-                            single: true,
-                            stateId: stateId,
-                            store: gridStore
+        getHeaderControls: function () {
+            var typePicker = Ext.create('Rally.ui.combobox.ModelTypeComboBox', {
+                value: this.modelNames[0],
+                listeners: {
+                    select: function (picker, records) {
+                        this._onTypeChange(records[0]);
                     },
                     scope: this
-                };
-            }
+                }
+            });
+            return this.callParent(arguments).concat(typePicker);
+        },
 
-            var gridConfig = {
-                xtype: 'rallytreegrid',
-                store: gridStore,
-                columnCfgs: this.getSetting('columnNames') || this.columnNames,
-                summaryColumns: [],
-                enableBulkEdit: true,
-                plugins: ['rallytreegridexpandedrowpersistence'],
-                stateId: stateId,
-                stateful: true,
-                alwaysShowDefaultColumns: false,
-                listeners: gridListeners,
-                expandAllInColumnHeaderEnabled: context.isFeatureEnabled('S77241_SHOW_EXPAND_ALL_IN_GRID_HEADER')
+        _onTypeChange: function (newType) {
+            this.modelNames = [newType.get('TypePath')];
+
+            if (this.toggleState === 'grid') {
+                this.gridboard.fireEvent('modeltypeschange', this.gridboard, [newType]);
+            } else {
+                this.loadGridBoard();
+            }
+        }/*,
+
+        getGridStoreConfig: function () {
+            return {
+                enableHierarchy: false,
+                childPageSizeEnabled: false
             };
-
-            gridConfig.plugins.push({
-                ptype: 'rallytreegridexpandedrowpersistence'
-            });
-
-            return gridConfig;
-        },
-
-        _getGridStore: function(modelNames) {
-            var storeConfig = Ext.apply(this.storeConfig || {}, {
-                models: modelNames,
-                autoLoad: false,
-                remoteSort: true,
-                root: {expanded: true},
-                pageSize: 200,
-                enableHierarchy: true,
-                childPageSizeEnabled: true,
-                fetch: this.columnNames
-            });
-
-            return Ext.create('Rally.data.wsapi.TreeStoreBuilder').build(storeConfig);
-        },
-
-        _onGridStateRestore: function(grid) {
-            grid.getStore().load();
-        },
-
-        _onGridRender: function(grid, options) {
-            this._handleInitialStatelessLoad(options.store, options.stateId);
-        },
-
-        _handleInitialStatelessLoad: function(store, stateId) {
-            var state = Ext.state.Manager.get(stateId);
-            if (!state) {
-                store.load();
-            }
-        }
+        }*/
     });
-
 })();
