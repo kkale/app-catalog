@@ -60,7 +60,7 @@
         },
 
         _getColumnSetting: function() {
-        	console.log("In _getColumnSetting");
+            console.log("In _getColumnSetting");
             var columnSetting = this.getSetting('columns');
             console.log("Columns: ", columnSetting);
             return columnSetting && Ext.JSON.decode(columnSetting);
@@ -197,7 +197,9 @@
                     }
                 },
                 columnConfig: {
-                	
+                    listeners: {
+                        beforecarddroppedsaved: this._onBeforeCardSaved
+                    }
                 },
                 margin: '10px 0 0 0',
                 plugins: [{ptype:'rallyfixedheadercardboard'}]
@@ -208,7 +210,7 @@
             var columnSetting = this._getColumnSetting();
             if (columnSetting) {
                 var setting = columnSetting[column.getValue()];
-                console.log("size bucket: ", setting.State);
+                console.log("Task State: ", setting.State);
                 if (setting ) {
                     card.getRecord().set('State', setting.State);
                 }
