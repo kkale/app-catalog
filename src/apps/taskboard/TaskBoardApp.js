@@ -4,6 +4,7 @@
     Ext.define('Rally.apps.taskboard.TaskBoardApp', {
         extend: 'Rally.app.TimeboxScopedApp',
         requires: [
+            'Rally.apps.kanban.Settings',
             'Rally.ui.cardboard.plugin.FixedHeader',
             'Rally.ui.gridboard.GridBoard',
             'Rally.ui.gridboard.plugin.GridBoardCustomFilterControl',
@@ -50,20 +51,21 @@
             this._destroyGridBoard();
         },
 
-        getSettingsFields: function () {
-            var fields = this.callParent(arguments);
-
-            fields.push({
-                name: 'hideAcceptedWork',
-                xtype: 'rallycheckboxfield',
-                margin: '10 0 0 0',
-                boxLabel: 'Hide accepted work',
-                fieldLabel: ' '
+        getSettingsFields: function() {
+            return Rally.apps.kanban.Settings.getFields({
+                shouldShowColumnLevelFieldPicker: true,
+                defaultCardFields: this.getSetting('cardFields'),
+                isDndWorkspace: false
             });
-
-            return fields;
         },
 
+        _getColumnSetting: function() {
+        	console.log("In _getColumnSetting");
+            var columnSetting = this.getSetting('columns');
+            console.log("Columns: ", columnSetting);
+            return columnSetting && Ext.JSON.decode(columnSetting);
+        },
+        
         _destroyGridBoard: function() {
             var gridBoard = this.down('rallygridboard');
             if (gridBoard) {
@@ -88,6 +90,7 @@
                 stateful: false,
                 toggleState: 'board',
                 cardBoardConfig: this._getBoardConfig(rowRecords),
+                shouldDestroyTreeStore: this.getContext().isFeatureEnabled('S73617_GRIDBOARD_SHOULD_DESTROY_TREESTORE'),
                 plugins: [
                     'rallygridboardaddnew',
                     {
@@ -109,8 +112,7 @@
                         ptype: 'rallygridboardfieldpicker',
                         headerPosition: 'left',
                         modelNames: modelNames,
-                        boardFieldDefaults: ['Estimate', 'ToDo'],
-                        boardFieldBlackList: ['State']
+                        boardFieldDefaults: ['Estimate', 'ToDo']
                     }
                 ],
                 context: context,
@@ -176,7 +178,7 @@
         _getBoardConfig: function (rowRecords) {
             return {
                 xtype: 'rallycardboard',
-                attribute: 'State',
+                attribute: 'TaskState',
                 rowConfig: {
                     field: 'WorkProduct',
                     sorters: [
@@ -194,11 +196,26 @@
                         xtype: 'rallytaskboardrowheader'
                     }
                 },
+                columnConfig: {
+                	
+                },
                 margin: '10px 0 0 0',
                 plugins: [{ptype:'rallyfixedheadercardboard'}]
             };
         },
 
+        _onBeforeCardSaved: function(column, card, type) {
+            var columnSetting = this._getColumnSetting();
+            if (columnSetting) {
+                var setting = columnSetting[column.getValue()];
+                console.log("size bucket: ", setting.State);
+                if (setting ) {
+                    card.getRecord().set('State', setting.State);
+                }
+            }
+        },
+        
+        
         _getQueryFilters: function (isRoot) {
             var timeboxFilters = [this.getContext().getTimeboxScope().getQueryFilter()];
             if(this.getSetting('hideAcceptedWork')) {
