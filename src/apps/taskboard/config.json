@@ -4,6 +4,9 @@
    "server": "https://rally1.rallydev.com",
    "sdk": "x",
    "javascript": [
+      "ColumnCardFieldPicker.js",
+      "ColumnSettingsField.js",
+      "Settings.js",
       "TaskBoardHeader.js",
       "TaskBoardApp.js"
    ],
