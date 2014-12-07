@@ -30,8 +30,8 @@
                         ready: function(combo) {
                             combo.store.filterBy(function(record) {
                                 var attr = record.get('fieldDefinition').attributeDefinition;
-                                console.log("Field Attributes: ", attr);
-                                return attr && !attr.ReadOnly && attr.Constrained && attr.AttributeType !== 'OBJECT' && attr.AttributeType !== 'COLLECTION';
+                                console.log("Field Attributes: ", Ext.isArray(attr.AllowedValues));
+                                return attr && !attr.ReadOnly && Ext.isArray(attr.AllowedValues) && attr.AllowedValues.length;
                             });
                             if (combo.getRecord()) {
                                 this.fireEvent('fieldselected', combo.getRecord().get('fieldDefinition'));
