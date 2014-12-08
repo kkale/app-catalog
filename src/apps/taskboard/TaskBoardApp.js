@@ -176,9 +176,10 @@
         },
 
         _getBoardConfig: function (rowRecords) {
+            var attrib = this.getSetting('groupByField');
             return {
                 xtype: 'rallycardboard',
-                attribute: 'TaskState',
+                attribute: this.getSetting('groupByField'),
                 rowConfig: {
                     field: 'WorkProduct',
                     sorters: [
@@ -197,26 +198,30 @@
                     }
                 },
                 columnConfig: {
-                    listeners: {
-                        beforecarddroppedsaved: this._onBeforeCardSaved
-                    }
+                  listeners: {
+                      beforecarddroppedsave: {
+                          fn: this._onBeforeCardDroppedSave,
+                          scope: this
+                      }
+                  }  
                 },
                 margin: '10px 0 0 0',
                 plugins: [{ptype:'rallyfixedheadercardboard'}]
             };
         },
 
-        _onBeforeCardSaved: function(column, card, type) {
+        
+        _onBeforeCardDroppedSave: function(destCol, card, type) {
+            console.log("In _onBeforeCardSaved");
             var columnSetting = this._getColumnSetting();
             if (columnSetting) {
-                var setting = columnSetting[column.getValue()];
-                console.log("Task State: ", setting.State);
+                var setting = columnSetting[destCol.getValue()];
+                console.log("Task State: ", setting.statemap);
                 if (setting ) {
-                    card.getRecord().set('State', setting.State);
+                    card.getRecord().set('State', setting.statemap);
                 }
             }
         },
-        
         
         _getQueryFilters: function (isRoot) {
             var timeboxFilters = [this.getContext().getTimeboxScope().getQueryFilter()];
