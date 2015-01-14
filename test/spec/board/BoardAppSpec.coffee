@@ -19,10 +19,9 @@ describe 'Rally.apps.board.BoardApp', ->
 
   it 'has the correct default settings', ->
     @createApp().then =>
-      expect(@app.getSetting('groupByField')).toBe 'ScheduleState'
       expect(@app.getSetting('type')).toBe 'HierarchicalRequirement'
-      expect(@app.getSetting('order')).toBe 'Rank'
-      expect(@app.getSetting('query')).toBe ''
+      expect(@app.getSetting('groupByField')).toBe 'ScheduleState'
+      expect(@app.getSetting('showRows')).toBe false
 
   it 'shows the correct type on the board', ->
     @createApp(type: 'defect', groupByField: 'State').then =>
@@ -54,6 +53,14 @@ describe 'Rally.apps.board.BoardApp', ->
       expect(@_getGridBoard().storeConfig.filters.length).toBe 1
       expect(@_getGridBoard().storeConfig.filters[0].toString())
         .toBe @app.getContext().getTimeboxScope().getQueryFilter().toString()
+
+  it 'does not filter by timebox if model does not have that timebox', ->
+    @ajax.whenQuerying('testcase').respondWithCount 5
+    @ajax.whenQueryingAllowedValues('testcase', 'Priority').respondWith ['None', 'Useful', 'Important', 'Critical']
+    @createApp({type: 'testcase', groupByField: 'Priority'}, context:
+      timebox: Ext.create 'Rally.app.TimeboxScope', record: @_createIterationRecord()
+    ).then =>
+      expect(@_getGridBoard().storeConfig.filters.length).toBe 0
 
   it 'scopes the board to the current timebox scope and specified query filter', ->
     query = '(Name contains foo)'
@@ -98,14 +105,20 @@ describe 'Rally.apps.board.BoardApp', ->
     @createApp(showRows: true, rowsField: 'Owner').then =>
       expect(@_getBoard().rowConfig.field).toBe 'Owner'
       expect(@_getBoard().rowConfig.sortDirection).toBe 'ASC'
-      expect(@_getBoard().storeConfig.sorters).toBeUndefined()
 
   it 'should not include rows configuration when showRows setting is false', ->
     @createApp(showRows: false, rowsField: 'Owner').then =>
       expect(@_getBoard().rowConfig).toBeNull()
+
+  it 'should include sorters from order setting', ->
+    @createApp(order: 'Name').then =>
       sorters = @_getBoard().storeConfig.sorters
       expect(sorters.length).toBe 1
       expect(sorters[0].property).toBe @app.getSetting('order')
+
+  it 'should set the initial gridboard height to the app height', ->
+    @createApp().then =>
+      expect(@app.down('rallygridboard').getHeight()).toBe @app.getHeight()
 
   describe 'plugins', ->
 
@@ -138,8 +151,10 @@ describe 'Rally.apps.board.BoardApp', ->
         context: @_createContext options.context
         settings: settings
         renderTo: options.renderTo || 'testDiv'
+        height: 400
 
-      @waitForComponentReady @_getBoard()
+      @once(condition: => @_getBoard()).then =>
+        @waitForComponentReady @_getBoard()
 
     _createContext: (context={}) ->
       Ext.create('Rally.app.Context',

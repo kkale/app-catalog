@@ -2,7 +2,7 @@
     var Ext = window.Ext4 || window.Ext;
 
     Ext.define('Rally.apps.common.PortfolioItemsGridBoardApp', {
-        extend: 'Rally.apps.common.GridBoardApp',
+        extend: 'Rally.app.GridBoardApp',
         requires: [
             'Rally.ui.cardboard.plugin.CollapsibleColumns',
             'Rally.ui.cardboard.plugin.FixedHeader'
@@ -222,8 +222,9 @@
                 this.currentType = newType;
                 this.modelNames = [newType.get('TypePath')];
 
+                this.gridboard.fireEvent('modeltypeschange', this.gridboard, [newType]);
                 if (this.toggleState === 'grid') {
-                    this.gridboard.fireEvent('modeltypeschange', this.gridboard, [newType]);
+                    this.gridboard.applyCustomFilter({types: this.modelNames});
                 } else {
                     this.loadGridBoard();
                 }

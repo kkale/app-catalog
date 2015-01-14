@@ -46,21 +46,12 @@
             value: undefined,
 
             /**
-             * @cfg {Boolean}
-             *
-             * To include custom fields
+             * @cfg {Function}
+             * A function which should return true if the specified field should
+             * be included in the list of available swimlane fields
+             * @param {Rally.domain.WsapiField} field
              */
-            includeCustomFields: true,
-
-            /**
-             * @cfg {Boolean}
-             */
-            includeConstrainedNonCustomFields: false,
-
-            /**
-             * @cfg {Boolean}
-             */
-            includeObjectFields: false,
+            isAllowedFieldFn: Ext.emptyFn,
 
             /**
              * @cfg {Object[]}
@@ -87,6 +78,7 @@
                     xtype: 'rallycheckboxfield',
                     name: 'showRows',
                     boxLabel: '',
+                    margin: '0',
                     submitValue: false,
                     value: this.getValue().showRows,
                     listeners: {
@@ -100,7 +92,8 @@
                     xtype: 'rallycombobox',
                     plugins: ['rallyfieldvalidationui'],
                     name: 'rowsField',
-                    margin: '0 5px',
+                    margin: '0 6px',
+                    width: 130,
                     emptyText: 'Choose Field...',
                     displayField: 'name',
                     valueField: 'value',
@@ -141,15 +134,9 @@
                 allFields = artifactModel.getFields(),
                 rowableFields = _.filter(allFields, function (field) {
                     var attr = field.attributeDefinition;
-                    return !field.hidden &&
-                        attr &&
-                        (!attr.Custom || this.includeCustomFields) &&
-                        ((attr.Constrained &&
-                        attr.AttributeType.toLowerCase() !== 'collection') ||
-                            (this.includeObjectFields && attr.AttributeType.toLowerCase() === 'object')) &&
-                        !attr.ReadOnly &&
-                        (attr.Custom || this.includeConstrainedNonCustomFields) &&
-                        artifactModel.getModelsForField(field).length === models.length;
+                    return attr && !attr.Hidden && attr.Sortable &&
+                        artifactModel.getModelsForField(field).length === models.length &&
+                        this.isAllowedFieldFn(field);
                 }, this);
 
             return _.map(rowableFields, function(field) {
@@ -184,5 +171,3 @@
         }
     });
 })();
-
-

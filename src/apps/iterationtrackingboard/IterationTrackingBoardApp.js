@@ -36,7 +36,6 @@
             'Rally.apps.iterationtrackingboard.StatsBanner',
             'Rally.apps.iterationtrackingboard.StatsBannerField',
             'Rally.clientmetrics.ClientMetricsRecordable',
-            'Rally.apps.iterationtrackingboard.PrintDialog',
             'Rally.apps.common.RowSettingsField'
         ],
 
@@ -123,9 +122,7 @@
                 margin: '10 0 0 0',
                 mapsToMultiplePreferenceKeys: ['showRows', 'rowsField'],
                 readyEvent: 'ready',
-                includeCustomFields: false,
-                includeConstrainedNonCustomFields: false,
-                includeObjectFields: false,
+                isAllowedFieldFn: function() { return false; },
                 explicitFields: [
                     {name: 'Blocked', value: 'Blocked'},
                     {name: 'Owner', value: 'Owner'},
@@ -258,26 +255,28 @@
         },
 
         _createUnassociatedDefectsOnlyFilter: function(model) {
-            var typeDefOid = model.getArtifactComponentModel('Defect').typeDefOid;
+            var typeDefOid = model.getArtifactComponentModel('Defect').typeDefOid,
+                isADefect = Ext.create('Rally.data.wsapi.Filter', {
+                    property: 'TypeDefOid',
+                    value: typeDefOid
+                }),
+                parentRequirementIsScheduled = Ext.create('Rally.data.wsapi.Filter', {
+                    property: 'Requirement.Iteration',
+                    operator: '!=',
+                    value: null
+                }),
+                hasNoParentRequirement = Ext.create('Rally.data.wsapi.Filter', {
+                    property: 'Requirement',
+                    operator: '=',
+                    value: null
+                }),
+                isNotADefect = Ext.create('Rally.data.wsapi.Filter', {
+                    property: 'TypeDefOid',
+                    value: typeDefOid,
+                    operator: '!='
+                });
 
-            var defectFilter = Ext.create('Rally.data.wsapi.Filter', {
-                property: 'TypeDefOid',
-                value: typeDefOid
-            });
-
-            var noUnscheduledRequirements = Ext.create('Rally.data.wsapi.Filter', {
-                property: 'Requirement.Iteration',
-                operator: '!=',
-                value: null
-            });
-
-            var notDefectFilter = Ext.create('Rally.data.wsapi.Filter', {
-                property: 'TypeDefOid',
-                value: typeDefOid,
-                operator: '!='
-            });
-
-            return defectFilter.and(noUnscheduledRequirements).or(notDefectFilter);
+            return isADefect.and(parentRequirementIsScheduled.or(hasNoParentRequirement)).or(isNotADefect);
         },
 
         _getBoardConfig: function() {
@@ -424,10 +423,10 @@
             return plugins;
         },
 
-        setHeight: Ext.Function.createBuffered(function() {
-            this.superclass.setHeight.apply(this, arguments);
+        setSize: function() {
+            this.callParent(arguments);
             this._resizeGridBoardToFillSpace();
-        }, 100),
+        },
 
         _importHandler: function(options) {
             return _.bind(function() {
@@ -458,15 +457,14 @@
         },
 
         _printHandler: function() {
-            var gridBoard = this.queryById('gridBoard');
-            var gridOrBoard = gridBoard.getGridOrBoard();
-            var totalRows = gridOrBoard.store.totalCount;
             var timeboxScope = this.getContext().getTimeboxScope();
 
-            Ext.create('Rally.apps.iterationtrackingboard.PrintDialog', {
-                showWarning: totalRows > 200,
-                timeboxScope: timeboxScope,
-                grid: gridOrBoard
+            Ext.create('Rally.ui.grid.TreeGridPrintDialog', {
+                grid: this.gridboard.getGridOrBoard(),
+                treeGridPrinterConfig: {
+                    largeHeaderText: 'Iteration Summary',
+                    smallHeaderText: timeboxScope.getRecord() ? timeboxScope.getRecord().get('Name') : 'Unscheduled'
+                }
             });
         },
 
@@ -596,6 +594,9 @@
                 columnCfgs: this._getGridColumns(),
                 summaryColumns: this._getSummaryColumnConfig(),
                 enableInlineAdd: this._inlineAddIsEnabled(),
+                inlineAddConfig:{
+                    enableAddPlusNewChildStories: false
+                },
                 enableBulkEdit: true,
                 enableBulkEditMilestones: context._isMilestoneEnabled(),
                 pagingToolbarCfg: {
